@@ -34,12 +34,12 @@ public interface Steps extends Requests {
                     .put("password", getProperty("adminPassword"));
         }//TODO make DataProvider with both users
         System.setProperty("authToken", callGetToken(requestBody).path("token"));
-        System.out.println(System.getProperty("authToken"));//TODO delete
     }
 
     @Step("Получение списка свободных номеров")
     default List<Long> getEmptyPhonesList() {
             return await()
+                    .catchUncaughtExceptions()
                     .atMost(10, TimeUnit.SECONDS)
                     .pollInterval(500, TimeUnit.MILLISECONDS)
                     .until(() -> callGetEmptyPhone()
@@ -53,7 +53,6 @@ public interface Steps extends Requests {
         phonesList.forEach(phone -> {
             String customerId = callFindByPhoneNumber(phone.toString()).xmlPath().getString("**.find {it.name == 'customerId'}");
             assertThat("FAIL: Номер телефона "+phone+" занят абонентом с id"+customerId, customerId, is(emptyOrNullString()));
-            System.out.println("OK: Номер телефона "+phone+" свободен");//TODO delete
         });
     }
 
@@ -61,8 +60,7 @@ public interface Steps extends Requests {
     default void checkFindByPhoneNumber(String phone) {
             assertThat("FAIL: Номер телефона "+ phone +" свободен",
                     callFindByPhoneNumber(phone).xmlPath().getString("**.find {it.name == 'customerId'}"),
-                    notNullValue());
-            System.out.println("OK: Номер телефона "+ phone +" занят");//TODO delete
+                    emptyOrNullString());
     }
 
 //    @Step("Выполнение метода 'postCustomer'")
