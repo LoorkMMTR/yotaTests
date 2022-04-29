@@ -1,13 +1,10 @@
-package models;
-
 import lombok.*;
+import lombok.experimental.Accessors;
 
 @Data
-@RequiredArgsConstructor
+@Accessors
 public class User {
-    @NonNull
     private String login;
-    @NonNull
     private String password;
     private String authToken;
 }
