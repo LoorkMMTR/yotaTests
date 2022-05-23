@@ -1,7 +1,7 @@
 package Tests;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.qameta.allure.Feature;
+import io.restassured.response.Response;
 import models.Customer;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -31,23 +31,36 @@ public class ActivationCustomerTests extends BaseTest {
 
     @Test(description = "Проверка создания клиента методом 'postCustomer'", groups = "Общее предусловие")
     public void postCustomerTest() {
-        checkCustomerCreation(getProperty("createdCustomerId"), "NEW");
+        checkCustomerCreation(getProperty("createdCustomerId"));
     }
 
-    @Test(description = "Проверка поиска клиента по номеру методом 'findByPhoneNumber'", groups = "Общее предусловие")
-    public void findByPhoneNumberTest() {
-        getCustomerIdByPhone(getProperty("createdCustomerPhone"));
-    }
+    @Test(description = "Проверка активации клиента методом 'getCustomerById'", groups = "Общее предусловие")
+    public void customerActivationTest() {
+        String customerId = getProperty("createdCustomerId");
+        checkCustomerStatus(customerId, "ACTIVE", 120);
 
-    @Test(description = "Проверка корректности активации клиента", groups = "Общее предусловие")//TODO add status check
-    public void checkCustomerData() {
-        Customer data = getCustomerDataById(getProperty("createdCustomerId"));
+        Customer data = getCustomerDataById(customerId);
         checkCustomerPassportData(data);
         checkCustomerAdditionalParameters(data);
     }
 
-    @Test(description = "Проверка активации клиента", groups = "Общее предусловие")
-    public void getCustomerActivationTest() {
-        checkCustomerStatus(getProperty("createdCustomerId"), "ACTIVE", 120);
+    @Test(description = "Проверка сохранения клиента в старой системе методом 'findByPhoneNumber'", groups = "Общее предусловие")
+    public void findByPhoneNumberTest() {
+        String oldSystemId = getCustomerIdFromOldSystem(getProperty("createdCustomerPhone"));
+        checkCustomerIdFromOldSystem(getProperty("createdCustomerId"), oldSystemId);
     }
+
+    @Test(description = "Проверка изменения статуса Aдминистратором", groups = "Общее предусловие")
+    public void changeStatusByAdminTest() {
+        String customerId = getProperty("createdCustomerId");
+        callChangeCustomerStatus(customerId, "CHANGED");
+        checkCustomerStatus(customerId, "CHANGED", 5);
+    }
+
+    @Test(description = "Проверка изменения статуса Пользователем", groups = "Общее предусловие")
+    public void changeStatusByUserTest() {
+        Response resp = callChangeCustomerStatus(getProperty("createdCustomerId"), "CHANGED");
+        checkChangingStatusByUser(resp);
+    }
+
 }

@@ -2,8 +2,10 @@ package steps;
 
 import api.Requests;
 import com.fasterxml.jackson.databind.*;
+import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import models.Customer;
 import org.awaitility.core.ConditionTimeoutException;
 import org.json.JSONObject;
@@ -87,12 +89,12 @@ public interface Steps extends Requests {
     }
 
     @Step("Проверка создания клиента")
-    default void checkCustomerCreation(String customerId, String status) {
+    default void checkCustomerCreation(String customerId) {
         assertThat(callGetCustomerById(customerId)
                 .then()
                 .statusCode(200)
                 .extract()
-                .path("return.status"), equalToIgnoringCase(status));
+                .path("return.status"), is(not(emptyOrNullString())));
     }
 
     @Step("Проверка активации клиента")
@@ -100,10 +102,10 @@ public interface Steps extends Requests {
         try {
             await()
                     .atMost(durationSEC, TimeUnit.SECONDS)
-                    .pollInterval(500, TimeUnit.MILLISECONDS)
+                    .pollInterval(1, TimeUnit.SECONDS)
                     .until(() -> callGetCustomerById(customerId)
                             .then()
-                            .extract()
+                            .extract().response()
                             .path("return.status"), equalToIgnoringCase(status));
         } catch (ConditionTimeoutException e) {
             fail("По истечении " + durationSEC + " секунд статус отличается от " + status);
@@ -129,8 +131,8 @@ public interface Steps extends Requests {
 
     @Step("Проверка паспортных данных клиента")
     default void checkCustomerPassportData(Customer data) {
-        assertThat("Некорректный номер паспорта"+data.getPassportNumber(), data.getPassportNumber(), is(matchesRegex("^\\d{6}$")));
-        assertThat("Некорректная серия паспорта"+data.getPassportNumber(), data.getPassportSeries(), is(matchesRegex("^\\d{4}$")));
+        assertThat("Некорректный номер паспорта" + data.getPassportNumber(), data.getPassportNumber(), is(matchesRegex("^\\d{6}$")));
+        assertThat("Некорректная серия паспорта" + data.getPassportNumber(), data.getPassportSeries(), is(matchesRegex("^\\d{4}$")));
     }
 
     @Step("Проверка дополнительных данных клиента")
@@ -138,8 +140,28 @@ public interface Steps extends Requests {
         assertThat("Дополнительные параметры отсутствуют", data.additionalParameters.getString(), is(notNullValue()));
     }
 
-    @Step("Получение ИД клиента по номеру телефона")
-    default void getCustomerIdByPhone(String customerPhone) {
-        callFindByPhoneNumber(customerPhone).then().statusCode(200);
+    @Step("Получение ИД клиента из старой системы")
+    default String getCustomerIdFromOldSystem(String customerPhone) {
+        String customerId = callFindByPhoneNumber(customerPhone).xmlPath().getString("Envelope.Body.customerId");
+        assertThat("ИД в ответе метода не получен", customerId, is(not(emptyOrNullString())));
+        return customerId;
+    }
+
+    @Step("Проверка ИД клиента из старой системы")
+    default void checkCustomerIdFromOldSystem(String customerId, String oldSystemCustomerId) {
+        assertThat("ИД " + oldSystemCustomerId + " , полученный из старой системы не соответствует" + customerId, oldSystemCustomerId, is(equalTo(customerId)));
+    }
+
+    @Step("Проверка ответа при изменении статуса клиента Пользователем")
+    default void checkChangingStatusByUser(Response resp) {
+        assertThat(resp.statusCode(), is(not(200)));
+        assertThat(resp.then().extract().response(), is(notNullValue()));
+        String errMsg = resp
+                .then()
+                .extract()
+                .jsonPath()
+                .getString("errorMessage");
+        assertThat("Сообщение об ошибке не соответствует", errMsg,
+                is("У пользователя не хватает прав на выполнение команды"));
     }
 }

@@ -3,12 +3,9 @@ package api;
 import io.qameta.allure.Step;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import models.Customer;
 import org.json.JSONObject;
 
 import static io.restassured.RestAssured.given;
-import static io.restassured.http.ContentType.JSON;
-import static io.restassured.http.ContentType.XML;
 import static java.lang.System.getProperty;
 import static org.awaitility.Awaitility.await;
 
@@ -20,9 +17,9 @@ public interface Requests {
                 .contentType(ContentType.JSON)
                 .when()
                 .post("/login")
-                .then().log().body()
-                .extract()
-                .response();
+                .then()
+                .log().body()
+                .extract().response();
     }
 
     @Step("Вызов метода 'getEmptyPhone'")
@@ -32,9 +29,9 @@ public interface Requests {
                 .header("authToken", getProperty("authToken"))
                 .when()
                 .get("/simcards/getEmptyPhone")
-                .then().log().body()
-                .extract()
-                .response();
+                .then()
+                .log().body()
+                .extract().response();
     }
 
     @Step("Вызов метода 'postCustomer'")
@@ -52,9 +49,7 @@ public interface Requests {
                 .post("/customer/postCustomer")
                 .then()
                 .log().body()
-//                .statusCode(200)
-                .extract()
-                .response();
+                .extract().response();
     }
 
     @Step("Вызов метода 'getCustomerById'")
@@ -64,10 +59,9 @@ public interface Requests {
                 .header("authToken", getProperty("authToken"))
                 .when()
                 .get("/customer/getCustomerById?customerId=" + customerId)
-                .then().log().body()
-                .statusCode(200)
-                .extract()
-                .response();
+                .then()
+                .log().body()
+                .extract().response();
     }
 
     @Step("Вызов метода 'findByPhoneNumber'")
@@ -87,23 +81,23 @@ public interface Requests {
                 .contentType(ContentType.XML)
                 .when()
                 .post("/customer/findByPhoneNumber")
-                .then().log().all()
-                .statusCode(200)
-                .extract()
-                .response();
+                .then()
+                .log().all()
+                .extract().response();
     }
 
     @Step("Вызов метода 'changeCustomerStatus'")
-    default void callChangeCustomerStatus(String customerId, String newStatus) {
+    default Response callChangeCustomerStatus(String customerId, String newStatus) {
         JSONObject requestBody = new JSONObject();
         requestBody.put("status", newStatus);
-        given()
+        return given()
                 .body(requestBody.toString())
                 .contentType(ContentType.JSON)
                 .header("authToken", getProperty("authToken"))
                 .when()
                 .post("/customer/" + customerId + "/changeCustomerStatus")
-                .then().log().body()
-                .statusCode(200);
+                .then()
+                .log().all()
+                .extract().response();
     }
 }

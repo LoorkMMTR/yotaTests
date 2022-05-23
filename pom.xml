@@ -164,8 +164,6 @@
                     <parallel>classes</parallel>
                     <systemPropertyVariables>
                         <allure.results.directory>target/allure-results</allure.results.directory>
-                        <allure.link.tms.pattern>https://jira.mos.social/browse/{}</allure.link.tms.pattern>
-                        <allure.link.issue.pattern>https://jira.mos.social/browse/{}</allure.link.issue.pattern>
                     </systemPropertyVariables>
                 </configuration>
                 <dependencies>
