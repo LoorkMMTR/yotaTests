@@ -1,12 +1,15 @@
 package services;
 
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeTest;
 import steps.Steps;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import java.util.List;
 
 public class BaseTest implements Steps {
+    protected List<Long> phonesList;
+    protected List<String> createdUserData;
+
     @BeforeTest(alwaysRun = true)
     public void setDefaultBasePath() {
         setBasePath();
@@ -14,8 +17,13 @@ public class BaseTest implements Steps {
 
     @BeforeTest
     public void getToken() {
-        String authToken = getAuthToken();
-        assertThat("FAIL: Токен не получен", authToken, not(emptyOrNullString()));
-        System.setProperty("authToken", authToken);
+        System.setProperty("authToken", getAuthToken());
+    }
+
+    @BeforeMethod(description = "Создание клиента", onlyForGroups = "Общее предусловие")
+    public void createCustomer() {
+        phonesList = getEmptyPhonesList();
+        createdUserData = callPostCustomerByPhonesList(phonesList);
+        setCreatedUserPhoneAndId(createdUserData);
     }
 }

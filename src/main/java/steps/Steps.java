@@ -2,7 +2,6 @@ package steps;
 
 import api.Requests;
 import com.fasterxml.jackson.databind.*;
-import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
@@ -13,12 +12,12 @@ import org.json.JSONObject;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static io.qameta.allure.Allure.addAttachment;
 import static java.lang.Integer.parseInt;
 import static java.lang.System.*;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.testng.AssertJUnit.assertFalse;
 import static org.testng.AssertJUnit.fail;
 
 public interface Steps extends Requests {
@@ -32,16 +31,21 @@ public interface Steps extends Requests {
     @Step("Получение токена авторизации")
     default String getAuthToken() {
         JSONObject requestBody = new JSONObject().put("login", "").put("password", "");
-        if (Objects.equals(getenv("user"), "user")) {
+        if (Objects.equals(getProperty("user"), "user")) {
             requestBody
                     .put("login", getProperty("userLogin"))
                     .put("password", getProperty("userPassword"));
-        } else {
+        } else if (Objects.equals(getProperty("user"), "admin")){
             requestBody
                     .put("login", getProperty("adminLogin"))
                     .put("password", getProperty("adminPassword"));
+        } else {
+            assertThat("Пользователь не указан или указан некорректно [user, admin]", Objects.equals(getProperty("user"), null));
         }//TODO make DataProvider with both users
-        return callGetToken(requestBody).path("token");
+
+        Response resp = callGetToken(requestBody);
+        addAttachment("Response", resp.asString());
+        return resp.path("token");
     }
 
     @Step("Получение списка свободных номеров")
@@ -58,7 +62,9 @@ public interface Steps extends Requests {
     @Step("Проверка списка свободных номеров")
     default void checkEmptyPhonesListByPostCustomer(List<Long> phonesList) {
         phonesList.forEach(phone -> {
-            String customerId = callPostCustomer(phone.toString()).path("id");
+            Response resp = callPostCustomer(phone.toString());
+            addAttachment("Response", resp.asString());
+            String customerId = resp.path("id");
             assertThat("Номер телефона " + phone + " уже используется", customerId, is(not(emptyOrNullString())));
         });
     }
@@ -90,14 +96,16 @@ public interface Steps extends Requests {
 
     @Step("Проверка создания клиента")
     default void checkCustomerCreation(String customerId) {
-        assertThat(callGetCustomerById(customerId)
+        Response resp = callGetCustomerById(customerId);
+        addAttachment("Response", resp.asString());
+        assertThat(resp
                 .then()
                 .statusCode(200)
                 .extract()
                 .path("return.status"), is(not(emptyOrNullString())));
     }
 
-    @Step("Проверка активации клиента")
+    @Step("Проверка изменения статуса клиента")
     default void checkCustomerStatus(String customerId, String status, int durationSEC) {
         try {
             await()
@@ -106,7 +114,7 @@ public interface Steps extends Requests {
                     .until(() -> callGetCustomerById(customerId)
                             .then()
                             .extract().response()
-                            .path("return.status"), equalToIgnoringCase(status));
+                            .path("return.status"), equalToIgnoringCase(status));//TODO addAttachment("Response", resp.asString())?
         } catch (ConditionTimeoutException e) {
             fail("По истечении " + durationSEC + " секунд статус отличается от " + status);
         }
@@ -123,7 +131,7 @@ public interface Steps extends Requests {
         Customer customer = objectMapper.convertValue(resMap, Customer.class);
 
         System.setProperty("customerPassportData", customer.getPd().replaceAll("\\D", " "));
-        List<String> list = List.of(getProperty("customerPassportData").trim().split("\\s+"));
+        List<String> list = Arrays.asList(getProperty("customerPassportData").trim().split("\\s+"));
         customer.setPassportNumber(list.get(0));
         customer.setPassportSeries(list.get(1));
         return customer;
@@ -142,7 +150,9 @@ public interface Steps extends Requests {
 
     @Step("Получение ИД клиента из старой системы")
     default String getCustomerIdFromOldSystem(String customerPhone) {
-        String customerId = callFindByPhoneNumber(customerPhone).xmlPath().getString("Envelope.Body.customerId");
+        Response resp = callFindByPhoneNumber(customerPhone);
+        addAttachment("Response", resp.asString());
+        String customerId = resp.xmlPath().getString("Envelope.Body.customerId");
         assertThat("ИД в ответе метода не получен", customerId, is(not(emptyOrNullString())));
         return customerId;
     }
