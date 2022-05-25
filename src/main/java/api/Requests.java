@@ -1,5 +1,6 @@
 package api;
 
+import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
@@ -7,12 +8,15 @@ import org.json.JSONObject;
 
 import static io.restassured.RestAssured.given;
 import static java.lang.System.getProperty;
-import static org.awaitility.Awaitility.await;
 
 public interface Requests {
+    default void addAllureAttachment(Response response) {
+        Allure.addAttachment("Response", response.asString());
+    }
+
     @Step("Вызов метода 'getToken'")
     default Response callGetToken(JSONObject body) {
-        return given()
+        Response response = given()
                 .body(body.toString())
                 .contentType(ContentType.JSON)
                 .when()
@@ -20,13 +24,15 @@ public interface Requests {
                 .then()
                 .log().body()
                 .extract().response();
+        addAllureAttachment(response);
+        return response;
     }
 
     @Step("Вызов метода 'getEmptyPhone'")
-    default Response callGetEmptyPhone() {
+    default Response callGetEmptyPhone(String token) {
         return given()
                 .contentType(ContentType.JSON)
-                .header("authToken", getProperty("authToken"))
+                .header("authToken", token)
                 .when()
                 .get("/simcards/getEmptyPhone")
                 .then()
@@ -35,7 +41,7 @@ public interface Requests {
     }
 
     @Step("Вызов метода 'postCustomer'")
-    default Response callPostCustomer(String freeNumber) {
+    default Response callPostCustomer(String token, String freeNumber) {
         JSONObject postCustomerBody = new JSONObject()
                 .put("name", "testCustomerName")
                 .put("phone", freeNumber)
@@ -44,7 +50,7 @@ public interface Requests {
         return given().log().body()
                 .body(postCustomerBody.toString())
                 .contentType(ContentType.JSON)
-                .header("authToken", getProperty("authToken"))
+                .header("authToken", token)
                 .when()
                 .post("/customer/postCustomer")
                 .then()
@@ -53,10 +59,10 @@ public interface Requests {
     }
 
     @Step("Вызов метода 'getCustomerById'")
-    default Response callGetCustomerById(String customerId) {
+    default Response callGetCustomerById(String token, String customerId) {
         return given()
                 .contentType(ContentType.JSON)
-                .header("authToken", getProperty("authToken"))
+                .header("authToken", token)
                 .when()
                 .get("/customer/getCustomerById?customerId=" + customerId)
                 .then()

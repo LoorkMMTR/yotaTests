@@ -7,12 +7,14 @@ import services.BaseTest;
 import static java.lang.System.getProperty;
 
 public class customerActivationTest extends BaseTest {
-    @Test(description = "Проверка активации клиента методом 'getCustomerById'", groups = "Общее предусловие")
-    public void customerActivation() {
+    @Test(description = "Проверка активации клиента методом 'getCustomerById'",
+            groups = "Общее предусловие",
+            dataProvider = "parseUserToken")
+    public void customerActivation(String user, String token) {
         String customerId = getProperty("createdCustomerId");
-        checkCustomerStatus(customerId, "ACTIVE", 120);
+        checkCustomerStatus(token, customerId, "ACTIVE", 120);
 
-        Customer data = getCustomerDataById(customerId);
+        Customer data = getCustomerDataById(token, customerId);
         checkCustomerPassportData(data);
         checkCustomerAdditionalParameters(data);
     }

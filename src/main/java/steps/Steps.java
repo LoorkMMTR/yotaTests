@@ -3,11 +3,11 @@ package steps;
 import api.Requests;
 import com.fasterxml.jackson.databind.*;
 import io.qameta.allure.Step;
-import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import models.Customer;
 import org.awaitility.core.ConditionTimeoutException;
 import org.json.JSONObject;
+import org.testng.ITestContext;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -22,61 +22,66 @@ import static org.testng.AssertJUnit.fail;
 
 public interface Steps extends Requests {
 
-    @Step("Установка дефолтных параметров")
-    default void setBasePath() {
-        RestAssured.baseURI = getProperty("defaultURL");
-        RestAssured.port = parseInt(getProperty("defaultPort"));
+    @Step("Проверка токена")
+    default void checkAuthToken(String token) {
+        assertThat("Токен не получен", token, not(emptyOrNullString()));
+        assertThat("Невалидный токен ", token, is(matchesRegex("^[a-z0-9]{32}$")));
     }
 
     @Step("Получение токена авторизации")
-    default String getAuthToken() {
+    default String getAuthToken(boolean isAdmin) {
         JSONObject requestBody = new JSONObject().put("login", "").put("password", "");
-        if (Objects.equals(getProperty("user"), "user")) {
-            requestBody
-                    .put("login", getProperty("userLogin"))
-                    .put("password", getProperty("userPassword"));
-        } else if (Objects.equals(getProperty("user"), "admin")){
+        if (isAdmin) {
             requestBody
                     .put("login", getProperty("adminLogin"))
                     .put("password", getProperty("adminPassword"));
         } else {
-            assertThat("Пользователь не указан или указан некорректно [user, admin]", Objects.equals(getProperty("user"), null));
-        }//TODO make DataProvider with both users
-
-        Response resp = callGetToken(requestBody);
-        addAttachment("Response", resp.asString());
-        return resp.path("token");
+            requestBody
+                    .put("login", getProperty("userLogin"))
+                    .put("password", getProperty("userPassword"));
+        }
+        return callGetToken(requestBody).path("token");
     }
 
+//    @Step("Получение токена авторизации c провайдером")
+//    default String getAuthToken(String login, String password) {
+//        JSONObject requestBody = new JSONObject().put("login", login).put("password", password);
+////            assertThat("Пользователь не указан или указан некорректно [login, password]", Objects.equals(getProperty("user"), null));
+//        Response resp = callGetToken(requestBody);
+//        addAttachment("Response", resp.asString());
+//        return resp.path("token");
+//    }
+
     @Step("Получение списка свободных номеров")
-    default List<Long> getEmptyPhonesList() {
+    default List<Long> getEmptyPhonesList(String token) {
         return await()
                 .atMost(10, TimeUnit.SECONDS)
                 .pollInterval(500, TimeUnit.MILLISECONDS)
-                .until(() -> callGetEmptyPhone()
+                .until(() -> callGetEmptyPhone(token)
                         .body()
                         .jsonPath()
                         .getList("phones.phone"), hasItem(notNullValue()));
     }
 
     @Step("Проверка списка свободных номеров")
-    default void checkEmptyPhonesListByPostCustomer(List<Long> phonesList) {
+    default void checkEmptyPhonesListByPostCustomer(String token, List<Long> phonesList) {
         phonesList.forEach(phone -> {
-            Response resp = callPostCustomer(phone.toString());
-            addAttachment("Response", resp.asString());
+            Response resp = callPostCustomer(token, phone.toString());
             String customerId = resp.path("id");
             assertThat("Номер телефона " + phone + " уже используется", customerId, is(not(emptyOrNullString())));
         });
     }
 
     @Step("Создание клиента методом 'postCustomer'")
-    default List<String> callPostCustomerByPhonesList(List<Long> phonesList) {
+    default List<String> callPostCustomerByPhonesList(String token, List<Long> phonesList) {
         ArrayList<String> resList = new ArrayList<>();
         String customerId = null;
         int count = 0;
         while (count < phonesList.size()) {
             String singlePhone = phonesList.get(count).toString();
-            customerId = callPostCustomer(singlePhone).path("id");
+            Response resp = callPostCustomer(token, singlePhone);
+            addAttachment("Response", resp.asString());
+            customerId = resp.path("id");
             if (customerId != null) {
                 resList.add(singlePhone);
                 resList.add(customerId);
@@ -95,8 +100,8 @@ public interface Steps extends Requests {
     }
 
     @Step("Проверка создания клиента")
-    default void checkCustomerCreation(String customerId) {
-        Response resp = callGetCustomerById(customerId);
+    default void checkCustomerCreation(String token, String customerId) {
+        Response resp = callGetCustomerById(token, customerId);
         addAttachment("Response", resp.asString());
         assertThat(resp
                 .then()
@@ -106,12 +111,12 @@ public interface Steps extends Requests {
     }
 
     @Step("Проверка изменения статуса клиента")
-    default void checkCustomerStatus(String customerId, String status, int durationSEC) {
+    default void checkCustomerStatus(String token, String customerId, String status, int durationSEC) {
         try {
             await()
                     .atMost(durationSEC, TimeUnit.SECONDS)
                     .pollInterval(1, TimeUnit.SECONDS)
-                    .until(() -> callGetCustomerById(customerId)
+                    .until(() -> callGetCustomerById(token, customerId)
                             .then()
                             .extract().response()
                             .path("return.status"), equalToIgnoringCase(status));//TODO addAttachment("Response", resp.asString())?
@@ -121,8 +126,8 @@ public interface Steps extends Requests {
     }
 
     @Step("Получение данных клиента по ИД")
-    default Customer getCustomerDataById(String customerId) {
-        Map<String, String> resMap = callGetCustomerById(customerId)
+    default Customer getCustomerDataById(String token, String customerId) {
+        Map<String, String> resMap = callGetCustomerById(token, customerId)
                 .then()
                 .extract()
                 .jsonPath()
