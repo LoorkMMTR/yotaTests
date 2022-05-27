@@ -10,9 +10,9 @@ public class oldSystemSavingTest extends BaseTest {
     public void findByPhoneNumberTest(String user, String token) {
         phonesList = getEmptyPhonesList(token, 10);
         createdUserData = callPostCustomerByPhonesList(token, phonesList);
-        setCreatedUserPhoneAndId(createdUserData);
+        setCreatedUserPhoneAndId(user, createdUserData);
 
-        String oldSystemId = getCustomerIdFromOldSystem(token, getProperty("createdCustomerPhone"));
-        checkCustomerIdFromOldSystem(getProperty("createdCustomerId"), oldSystemId);
+        String oldSystemId = getCustomerIdFromOldSystem(token, getProperty(user+"CreatedCustomerPhone"));
+        checkCustomerIdFromOldSystem(getProperty(user+"CreatedCustomerId"), oldSystemId);
     }
 }

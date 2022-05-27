@@ -10,8 +10,8 @@ public class customerCreationTest extends BaseTest {
     public void postCustomer(String user, String token) {
         phonesList = getEmptyPhonesList(token, 10);
         createdUserData = callPostCustomerByPhonesList(token, phonesList);
-        setCreatedUserPhoneAndId(createdUserData);
+        setCreatedUserPhoneAndId(user, createdUserData);
 
-        checkCustomerCreation(token, getProperty("createdCustomerId"));
+        checkCustomerCreation(token, getProperty(user+"CreatedCustomerId"));
     }
 }

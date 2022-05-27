@@ -4,43 +4,41 @@ import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
-import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
+import specs.requestSpecs;
 
+import static io.qameta.allure.Allure.addAttachment;
 import static io.restassured.RestAssured.given;
-import static java.lang.System.getProperty;
+import static specs.responseSpecs.*;
+import static specs.requestSpecs.*;
 
 public interface Requests {
-    private void addAttachment(@NotNull Response response) {
-        Allure.addAttachment("Response", response.asString());
-    }
-
     @Step("Вызов метода 'getToken'")
     default Response callGetToken(@NotNull JSONObject body) {
         Response response = given()
+                .spec(JSONLog())
                 .body(body.toString())
-                .contentType(ContentType.JSON)
                 .when()
                 .post("/login")
                 .then()
-                .log().body()
+                .spec(logsOnly())
                 .extract().response();
-        addAttachment(response);
+        addAttachment("Request", body.toString());
+        addAttachment("Response", response.asString());
         return response;
     }
 
     @Step("Вызов метода 'getEmptyPhone'")
     default Response callGetEmptyPhone(String token) {
         Response response = given()
-                .contentType(ContentType.JSON)
                 .header("authToken", token)
                 .when()
                 .get("/simcards/getEmptyPhone")
                 .then()
-                .log().body()
+                .spec(logsOnly())
                 .extract().response();
-        addAttachment(response);
+        addAttachment("Response", response.asString());
         return response;
     }
 
@@ -51,30 +49,31 @@ public interface Requests {
                 .put("phone", freeNumber)
                 .put("additionalParameters", new JSONObject().put("string", "anyString"));
 
-        Response response = given().log().body()
+        Response response = given()
+                .spec(requestSpecs.JSONLog())
                 .body(postCustomerBody.toString())
-                .contentType(ContentType.JSON)
                 .header("authToken", token)
                 .when()
                 .post("/customer/postCustomer")
                 .then()
-                .log().body()
+                .spec(logsOnly())
                 .extract().response();
-        addAttachment(response);
+        addAttachment("Request", postCustomerBody.toString());
+        addAttachment("Response", response.asString());
         return response;
     }
 
     @Step("Вызов метода 'getCustomerById'")
     default Response callGetCustomerById(String token, String customerId) {
         Response response = given()
-                .contentType(ContentType.JSON)
+                .spec(requestSpecs.JSONLog())
                 .header("authToken", token)
                 .when()
                 .get("/customer/getCustomerById?customerId=" + customerId)
                 .then()
-                .log().body()
+                .spec(logsOnly())
                 .extract().response();
-        addAttachment(response);
+        addAttachment("Response", response.asString());
         return response;
     }
 
@@ -96,9 +95,10 @@ public interface Requests {
                 .when()
                 .post("/customer/findByPhoneNumber")
                 .then()
-                .log().all()
+                .log().body()
                 .extract().response();
-        addAttachment(response);
+        addAttachment("Request", requestBody);
+        addAttachment("Response", response.asString());
         return response;
     }
 
@@ -107,15 +107,16 @@ public interface Requests {
         JSONObject requestBody = new JSONObject();
         requestBody.put("status", newStatus);
         Response response = given()
+                .spec(requestSpecs.JSONLog())
                 .body(requestBody.toString())
-                .contentType(ContentType.JSON)
                 .header("authToken", token)
                 .when()
                 .post("/customer/" + customerId + "/changeCustomerStatus")
                 .then()
-                .log().all()
+                .spec(logsOnly())
                 .extract().response();
-        addAttachment(response);
+        addAttachment("Request", requestBody.toString());
+        addAttachment("Response", response.asString());
         return response;
     }
 }

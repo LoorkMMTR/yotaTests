@@ -11,9 +11,9 @@ public class customerActivationTest extends BaseTest {
     public void customerActivation(String user, String token) {
         phonesList = getEmptyPhonesList(token, 10);
         createdUserData = callPostCustomerByPhonesList(token, phonesList);
-        setCreatedUserPhoneAndId(createdUserData);
+        setCreatedUserPhoneAndId(user, createdUserData);
 
-        String customerId = getProperty("createdCustomerId");
+        String customerId = getProperty(user+"CreatedCustomerId");
         checkCustomerStatus(token, customerId, "ACTIVE", 120);
         Customer data = getCustomerDataById(token, customerId);
         checkCustomerPassportData(data.getPassportSeries(), data.getPassportNumber());

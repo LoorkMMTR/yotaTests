@@ -6,6 +6,7 @@ import io.qameta.allure.Step;
 import io.restassured.response.Response;
 import models.Customer;
 import org.awaitility.core.ConditionTimeoutException;
+import org.jetbrains.annotations.NotNull;
 import org.json.JSONObject;
 
 import java.util.*;
@@ -41,15 +42,6 @@ public interface Steps extends Requests {
         return callGetToken(requestBody).path("token");
     }
 
-//    @Step("Получение токена авторизации c провайдером")
-//    default String getAuthToken(String login, String password) {
-//        JSONObject requestBody = new JSONObject().put("login", login).put("password", password);
-////            assertThat("Пользователь не указан или указан некорректно [login, password]", Objects.equals(getProperty("user"), null));
-//        Response resp = callGetToken(requestBody);
-//        addAttachment("Response", resp.asString());
-//        return resp.path("token");
-//    }TODO delete
-
     @Step("Получение списка свободных номеров")
     default List<Long> getEmptyPhonesList(String token, int durationSEC) {
         try {
@@ -66,9 +58,8 @@ public interface Steps extends Requests {
         }
     }
 
-
     @Step("Проверка списка свободных номеров")
-    default void checkEmptyPhonesListByPostCustomer(String token, List<Long> phonesList) {
+    default void checkEmptyPhonesListByPostCustomer(String token, @NotNull List<Long> phonesList) {
         phonesList.forEach(phone -> {
             Response resp = callPostCustomer(token, phone.toString());
             String customerId = resp.path("id");
@@ -77,14 +68,13 @@ public interface Steps extends Requests {
     }
 
     @Step("Создание клиента методом 'postCustomer'")
-    default List<String> callPostCustomerByPhonesList(String token, List<Long> phonesList) {
+    default List<String> callPostCustomerByPhonesList(String token, @NotNull List<Long> phonesList) {
         ArrayList<String> resList = new ArrayList<>();
         String customerId = null;
         int count = 0;
         while (count < phonesList.size()) {
             String singlePhone = phonesList.get(count).toString();
             Response resp = callPostCustomer(token, singlePhone);
-            addAttachment("Response", resp.asString());
             customerId = resp.path("id");
             if (customerId != null) {
                 resList.add(singlePhone);
@@ -98,15 +88,14 @@ public interface Steps extends Requests {
     }
 
     @Step("Сохранение createdCustomerPhone и createdCustomerId")
-    default void setCreatedUserPhoneAndId(List<String> resList) {
-        System.setProperty("createdCustomerPhone", resList.get(0));
-        System.setProperty("createdCustomerId", resList.get(1));
+    default void setCreatedUserPhoneAndId(String user, @NotNull List<String> resList) {
+        System.setProperty(user+"CreatedCustomerPhone", resList.get(0));
+        System.setProperty(user+"CreatedCustomerId", resList.get(1));
     }
 
     @Step("Проверка создания клиента")
     default void checkCustomerCreation(String token, String customerId) {
         Response resp = callGetCustomerById(token, customerId);
-        addAttachment("Response", resp.asString());
         assertThat(resp
                 .then()
                 .statusCode(200)
@@ -123,7 +112,7 @@ public interface Steps extends Requests {
                     .until(() -> callGetCustomerById(token, customerId)
                             .then()
                             .extract().response()
-                            .path("return.status"), equalToIgnoringCase(status));//TODO addAttachment("Response", resp.asString())?
+                            .path("return.status"), equalToIgnoringCase(status));
         } catch (ConditionTimeoutException e) {
             fail("По истечении " + durationSEC + " сек. статус отличается от " + status);
         }
@@ -160,7 +149,6 @@ public interface Steps extends Requests {
     @Step("Получение ИД клиента из старой системы")
     default String getCustomerIdFromOldSystem(String token, String customerPhone) {
         Response resp = callFindByPhoneNumber(token, customerPhone);
-        addAttachment("Response", resp.asString());
         String customerId = resp.xmlPath().getString("Envelope.Body.customerId");
         assertThat("ИД в ответе метода не получен", customerId, is(not(emptyOrNullString())));
         return customerId;
@@ -168,11 +156,12 @@ public interface Steps extends Requests {
 
     @Step("Проверка ИД клиента из старой системы")
     default void checkCustomerIdFromOldSystem(String customerId, String oldSystemCustomerId) {
-        assertThat("ИД " + oldSystemCustomerId + " , полученный из старой системы не соответствует" + customerId, oldSystemCustomerId, is(equalTo(customerId)));
+        assertThat("ИД " + oldSystemCustomerId + " , полученный из старой системы не соответствует " + customerId, oldSystemCustomerId, is(equalTo(customerId)));
     }
 
     @Step("Проверка ответа при изменении статуса клиента Пользователем")
-    default void checkChangingStatusByUser(Response resp) {
+    default void checkChangingStatusByUser(@NotNull Response resp) {
+        addAttachment("Response", resp.asString());
         assertThat(resp.statusCode(), is(not(200)));
         assertThat(resp.then().extract().response(), is(notNullValue()));
         String errMsg = resp
