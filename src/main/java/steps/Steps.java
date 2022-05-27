@@ -7,13 +7,11 @@ import io.restassured.response.Response;
 import models.Customer;
 import org.awaitility.core.ConditionTimeoutException;
 import org.json.JSONObject;
-import org.testng.ITestContext;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static io.qameta.allure.Allure.addAttachment;
-import static java.lang.Integer.parseInt;
 import static java.lang.System.*;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -50,18 +48,24 @@ public interface Steps extends Requests {
 //        Response resp = callGetToken(requestBody);
 //        addAttachment("Response", resp.asString());
 //        return resp.path("token");
-//    }
+//    }TODO delete
 
     @Step("Получение списка свободных номеров")
-    default List<Long> getEmptyPhonesList(String token) {
-        return await()
-                .atMost(10, TimeUnit.SECONDS)
-                .pollInterval(500, TimeUnit.MILLISECONDS)
-                .until(() -> callGetEmptyPhone(token)
-                        .body()
-                        .jsonPath()
-                        .getList("phones.phone"), hasItem(notNullValue()));
+    default List<Long> getEmptyPhonesList(String token, int durationSEC) {
+        try {
+            return await()
+                    .atMost(durationSEC, TimeUnit.SECONDS)
+                    .pollInterval(1, TimeUnit.SECONDS)
+                    .until(() -> callGetEmptyPhone(token)
+                            .body()
+                            .jsonPath()
+                            .getList("phones.phone"), hasItem(notNullValue()));
+        } catch (ConditionTimeoutException e) {
+            fail("По истечении " + durationSEC + " сек. список телефонов не получен");
+            return null;
+        }
     }
+
 
     @Step("Проверка списка свободных номеров")
     default void checkEmptyPhonesListByPostCustomer(String token, List<Long> phonesList) {
@@ -121,7 +125,7 @@ public interface Steps extends Requests {
                             .extract().response()
                             .path("return.status"), equalToIgnoringCase(status));//TODO addAttachment("Response", resp.asString())?
         } catch (ConditionTimeoutException e) {
-            fail("По истечении " + durationSEC + " секунд статус отличается от " + status);
+            fail("По истечении " + durationSEC + " сек. статус отличается от " + status);
         }
     }
 
@@ -143,19 +147,19 @@ public interface Steps extends Requests {
     }
 
     @Step("Проверка паспортных данных клиента")
-    default void checkCustomerPassportData(Customer data) {
-        assertThat("Некорректный номер паспорта" + data.getPassportNumber(), data.getPassportNumber(), is(matchesRegex("^\\d{6}$")));
-        assertThat("Некорректная серия паспорта" + data.getPassportNumber(), data.getPassportSeries(), is(matchesRegex("^\\d{4}$")));
+    default void checkCustomerPassportData(String passSeries, String passNumber) {
+        assertThat("Некорректная серия паспорта", passSeries, is(matchesRegex("^\\d{4}$")));
+        assertThat("Некорректный номер паспорта", passNumber, is(matchesRegex("^\\d{6}$")));
     }
 
     @Step("Проверка дополнительных данных клиента")
-    default void checkCustomerAdditionalParameters(Customer data) {
-        assertThat("Дополнительные параметры отсутствуют", data.additionalParameters.getString(), is(notNullValue()));
+    default void checkCustomerAdditionalParameters(String addParams) {
+        assertThat("Дополнительные параметры отсутствуют", addParams, is(notNullValue()));
     }
 
     @Step("Получение ИД клиента из старой системы")
-    default String getCustomerIdFromOldSystem(String customerPhone) {
-        Response resp = callFindByPhoneNumber(customerPhone);
+    default String getCustomerIdFromOldSystem(String token, String customerPhone) {
+        Response resp = callFindByPhoneNumber(token, customerPhone);
         addAttachment("Response", resp.asString());
         String customerId = resp.xmlPath().getString("Envelope.Body.customerId");
         assertThat("ИД в ответе метода не получен", customerId, is(not(emptyOrNullString())));

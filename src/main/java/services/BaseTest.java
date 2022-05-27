@@ -1,8 +1,6 @@
 package services;
 
 import io.restassured.RestAssured;
-import models.User;
-import org.testng.ITestContext;
 import org.testng.annotations.*;
 import steps.Steps;
 
@@ -11,9 +9,6 @@ import java.util.List;
 import static java.lang.Integer.parseInt;
 import static java.lang.System.getProperty;
 import static java.lang.System.setProperty;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.emptyOrNullString;
-import static org.hamcrest.Matchers.not;
 
 public class BaseTest implements Steps {
     protected List<Long> phonesList;
@@ -45,5 +40,5 @@ public class BaseTest implements Steps {
 //        phonesList = getEmptyPhonesList(token);
 //        createdUserData = callPostCustomerByPhonesList(token, phonesList);
 //        setCreatedUserPhoneAndId(createdUserData);
-//    }
+//    }//TODO make user creation with provider
 }

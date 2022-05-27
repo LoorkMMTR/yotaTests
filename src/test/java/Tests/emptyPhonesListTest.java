@@ -7,7 +7,7 @@ public class emptyPhonesListTest extends BaseTest {
     @Test(description = "Проверка списка свободных номеров, полученных методом 'getEmptyPhone'",
     dataProvider = "parseUserToken")
     public void getEmptyPhone(String user, String token) {
-        phonesList = getEmptyPhonesList(token);
+        phonesList = getEmptyPhonesList(token, 10);
         checkEmptyPhonesListByPostCustomer(token, phonesList);
     }
 }

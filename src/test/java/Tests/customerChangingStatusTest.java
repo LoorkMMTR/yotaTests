@@ -7,14 +7,18 @@ import services.BaseTest;
 import static java.lang.System.getProperty;
 
 public class customerChangingStatusTest extends BaseTest {
-    @Test(description = "Проверка изменения статуса Aдминистратором", groups = "Общее предусловие", dataProvider = "parseUserToken")
+    @Test(description = "Проверка изменения статуса Aдминистратором", dataProvider = "parseUserToken")
     public void changeStatus(String token, String user) {
+        phonesList = getEmptyPhonesList(token, 10);
+        createdUserData = callPostCustomerByPhonesList(token, phonesList);
+        setCreatedUserPhoneAndId(createdUserData);
+
         if (user.equals("admin")) {
             String customerId = getProperty("createdCustomerId");
-            callChangeCustomerStatus(customerId, "CHANGED");
+            callChangeCustomerStatus(token, customerId, "CHANGED");
             checkCustomerStatus(token, customerId, "CHANGED", 5);
         } else if (user.equals("user")) {
-            Response resp = callChangeCustomerStatus(getProperty("createdCustomerId"), "CHANGED");
+            Response resp = callChangeCustomerStatus(token, getProperty("createdCustomerId"), "CHANGED");
             checkChangingStatusByUser(resp);
         }
     }
