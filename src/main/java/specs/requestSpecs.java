@@ -8,6 +8,7 @@ import io.restassured.specification.RequestSpecification;
 public class requestSpecs {
     public static RequestSpecification JSONLog() {
         return new RequestSpecBuilder()
+                .setBaseUri(System.getProperty("defaultURL")+":"+System.getProperty("defaultPort"))
                 .setContentType(ContentType.JSON)
                 .log(LogDetail.BODY)
                 .build();

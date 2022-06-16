@@ -14,13 +14,6 @@ public class BaseTest implements Steps {
     protected List<Long> phonesList;
     protected List<String> createdUserData;
 
-    @DataProvider(parallel = true)
-    public Object[][] parseUserToken() {
-        return new Object[][]{
-                {"admin", getProperty("authAdminToken")},
-                {"user", getProperty("authUserToken")},
-        };
-    }
 
     @BeforeTest(description = "Установка дефолтных параметров")
     public void setDefaultBasePath() {
@@ -28,10 +21,18 @@ public class BaseTest implements Steps {
         RestAssured.port = parseInt(getProperty("defaultPort"));
     }
 
-    @BeforeTest(description = "Получение токенов авторизации")
+/*    @BeforeTest(description = "Получение токенов авторизации")
     public void getTokens() {
         setProperty("authAdminToken", getAuthToken(true));
         setProperty("authUserToken", getAuthToken(false));
+    }*/
+
+    @DataProvider(parallel = true)
+    public Object[][] parseUserToken() {
+        return new Object[][]{
+                {"admin", getProperty("authAdminToken")},
+                {"user", getProperty("authUserToken")},
+        };
     }
 
 //    @Test(dataProvider = "parseUserToken")
