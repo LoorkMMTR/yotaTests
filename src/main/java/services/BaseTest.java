@@ -15,17 +15,17 @@ public class BaseTest implements Steps {
     protected List<String> createdUserData;
 
 
-    @BeforeTest(description = "Установка дефолтных параметров")
+/*    @BeforeTest(description = "Установка дефолтных параметров")
     public void setDefaultBasePath() {
         RestAssured.baseURI = getProperty("defaultURL");
         RestAssured.port = parseInt(getProperty("defaultPort"));
-    }
+    }*/
 
-/*    @BeforeTest(description = "Получение токенов авторизации")
+    @BeforeTest(description = "Получение токенов авторизации")
     public void getTokens() {
         setProperty("authAdminToken", getAuthToken(true));
         setProperty("authUserToken", getAuthToken(false));
-    }*/
+    }
 
     @DataProvider(parallel = true)
     public Object[][] parseUserToken() {
