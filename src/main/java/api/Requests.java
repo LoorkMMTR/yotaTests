@@ -32,6 +32,7 @@ public interface Requests {
     @Step("Вызов метода 'getEmptyPhone'")
     default Response callGetEmptyPhone(String token) {
         Response response = given()
+                .spec(BaseUrl())
                 .header("authToken", token)
                 .when()
                 .get("/simcards/getEmptyPhone")
@@ -90,6 +91,7 @@ public interface Requests {
                 "</ns3:Envelope>";
 
         Response response = given()
+                .spec(BaseUrl())
                 .body(requestBody)
                 .contentType(ContentType.XML)
                 .when()

@@ -13,4 +13,10 @@ public class requestSpecs {
                 .log(LogDetail.BODY)
                 .build();
     }
+
+    public static RequestSpecification BaseUrl() {
+        return new RequestSpecBuilder()
+                .setBaseUri(System.getProperty("defaultURL") + ":" + System.getProperty("defaultPort"))
+                .build();
+    }
 }
